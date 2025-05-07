@@ -1,9 +1,15 @@
+require("dotenv").config();
+const pythonPath = process.env.PYTHON_PATH;
+
 const express = require("express");
 const multer = require("multer");
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { stdout } = require("process");
+const { PythonShell } = require("python-shell");
+
+const pythonShell = require("python-shell").PythonShell;
 
 const app = express();
 const port = 3000;
@@ -68,7 +74,49 @@ app.post("/upload-docx", upload.single("file"), (req, res) => {
 });
 
 // VALIDAR NOVAS OPÇÕES PARA CONVERSÃO DE PDF PARA DOCX POIS O LIBREOFFICE NAO TEM
-app.post("/upload-pdf", upload.single("file"), (req, res) => {});
+app.post("/upload-pdf", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("Arquivo não importado");
+  }
+
+  const inputPath = path.join(__dirname, req.file.path);
+  const outputPath = inputPath.replace(".pdf", ".docx");
+
+  python_path = "";
+  const pyshell = new PythonShell("convert-pdf-to-docx.py", {
+    mode: "text",
+    pythonPath: pythonPath,
+    scriptPath: __dirname,
+    args: [req.file.path],
+  });
+
+  pyshell.on("message", (message) => {
+    console.log("[Python]", message);
+  });
+
+  pyshell.end((err) => {
+    if (err) {
+      console.error("Erro no script Python:", err);
+      return res.status(500).send("Erro ao converter o arquivo.");
+    }
+
+    fs.access(outputPath, fs.constants.F_OK, (err) => {
+      if (err) {
+        console.error("Arquivo convertido não encontrado:", err);
+        return res.status(500).send("Arquivo convertido não encontrado.");
+      }
+
+      res.download(outputPath, "converted.docx", (err) => {
+        if (err) {
+          console.error("Erro ao enviar o arquivo:", err);
+        }
+
+        fs.unlink(inputPath, () => {});
+        fs.unlink(outputPath, () => {});
+      });
+    });
+  });
+});
 
 app.get("/docx-to-pdf", (req, res) => {
   res.send(`
