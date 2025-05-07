@@ -1,0 +1,25 @@
+{
+  "name": "rapid-convert",
+  "version": "1.0.0",
+  "description": "- Usuário acessa o site.\r - Faz upload do arquivo.\r - Seleciona o tipo de conversão (ex: DOCX → PDF, JPG → PNG).\r - Clica em \"Converter\".\r - Envia o arquivo e tipo de conversão para a API.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devguilara/rapid-convert.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/devguilara/rapid-convert/issues"
+  },
+  "homepage": "https://github.com/devguilara/rapid-convert#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "multer": "^1.4.5-lts.2"
+  },
+  "devDependencies": {}
+}
