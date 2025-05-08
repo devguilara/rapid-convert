@@ -81,7 +81,7 @@ app.post("/upload-pdf", upload.single("file"), (req, res) => {
   const outputPath = inputPath.replace(".pdf", ".docx");
 
   python_path = "";
-  const pyshell = new PythonShell("convert-pdf-to-docx.py", {
+  const pyshell = new PythonShell("./scripts/convert-pdf-to-docx.py", {
     mode: "text",
     pythonPath: pythonPath,
     scriptPath: __dirname,
