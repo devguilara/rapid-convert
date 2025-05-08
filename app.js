@@ -6,10 +6,8 @@ const multer = require("multer");
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const { stdout } = require("process");
 const { PythonShell } = require("python-shell");
 const sharp = require("sharp");
-const pythonShell = require("python-shell").PythonShell;
 
 const app = express();
 const port = 3000;
@@ -19,6 +17,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
+
 setInterval(() => {
   const uploadDir = path.join(__dirname, "uploads");
   const limiteTempo = 2 * 60 * 60 * 1000;
@@ -104,7 +103,8 @@ app.post("/upload-pdf", upload.single("file"), (req, res) => {
         return res.status(500).send("Arquivo convertido não encontrado.");
       }
 
-      res.download(outputPath, "converted.docx", (err) => {
+      const docxName = req.file.filename.replace(/\.pdf$/, ".docx");
+      res.download(outputPath, docxName, (err) => {
         if (err) {
           console.error("Erro ao enviar o arquivo:", err);
         }
