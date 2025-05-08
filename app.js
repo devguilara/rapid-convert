@@ -8,7 +8,7 @@ const path = require("path");
 const fs = require("fs");
 const { stdout } = require("process");
 const { PythonShell } = require("python-shell");
-
+const sharp = require("sharp");
 const pythonShell = require("python-shell").PythonShell;
 
 const app = express();
@@ -19,10 +19,9 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
-//executar limpeza na pasta de uploads
 setInterval(() => {
   const uploadDir = path.join(__dirname, "uploads");
-  const limiteTempo = 2 * 60 * 60 * 1000; // 2h
+  const limiteTempo = 2 * 60 * 60 * 1000;
 
   fs.readdir(uploadDir, (err, files) => {
     if (err) return console.error("Erro ao ler a pasta uploads: ", err);
@@ -45,7 +44,7 @@ setInterval(() => {
       });
     });
   });
-}, 30 * 60 * 1000); // roda a cada 30 minutos
+}, 30 * 60 * 1000);
 
 app.post("/upload-docx", upload.single("file"), (req, res) => {
   const inPath = path.join(__dirname, req.file.path);
@@ -73,7 +72,6 @@ app.post("/upload-docx", upload.single("file"), (req, res) => {
   });
 });
 
-// VALIDAR NOVAS OPÇÕES PARA CONVERSÃO DE PDF PARA DOCX POIS O LIBREOFFICE NAO TEM
 app.post("/upload-pdf", upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).send("Arquivo não importado");
@@ -118,23 +116,53 @@ app.post("/upload-pdf", upload.single("file"), (req, res) => {
   });
 });
 
+app.post("/upload-jpg", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("Arquivo JPG não envviado");
+  }
+
+  const inputPath = path.join(__dirname, req.file.path);
+  const outputDir = path.join(__dirname, "converted");
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+  }
+
+  const fileNameWithoutExt = path.parse(req.file.filename).name;
+  const outputPath = path.join(
+    outputDir,
+    `${Date.now()}-${fileNameWithoutExt}.png`
+  );
+
+  try {
+    await sharp(inputPath).png().toFile(outputPath);
+
+    res.download(outputPath, `${fileNameWithoutExt}.png`, (err) => {
+      fs.unlink(inputPath, () => {});
+      fs.unlink(outputPath, () => {});
+    });
+  } catch (error) {
+    console.log("Erro na conversao JPG -> PNG");
+    res.status(500).send("Erro ao converter JPG");
+  }
+});
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "./views/index.html"));
+});
+
 app.get("/docx-to-pdf", (req, res) => {
-  res.send(`
-        <form action="/upload-docx" method="post" enctype="multipart/form-data">
-          <input type="file" name="file" accept=".docx" />
-          <button type="submit">Converter para PDF</button>
-        </form>
-      `);
+  res.sendFile(path.join(__dirname, "./views/docx-to-pdf.html"));
 });
 
 app.get("/pdf-to-docx", (req, res) => {
-  res.send(`
-          <form action="/upload-pdf" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".pdf" />
-            <button type="submit">Converter para DOCX</button>
-          </form>
-        `);
+  res.sendFile(path.join(__dirname, "./views/pdf-to-docx.html"));
 });
+
+app.get("/jpg-to-png", (req, res) => {
+  res.sendFile(path.join(__dirname, "./views/jpg-to-png.html"));
+});
+
 app.listen(port, () => {
   console.log("Servidor rodando na porta ", port);
 });
