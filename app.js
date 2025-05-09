@@ -1,6 +1,7 @@
 require("dotenv").config();
 const pythonPath = process.env.PYTHON_PATH;
-
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath("C:/ProgramData/chocolatey/bin/ffmpeg.exe");
 const express = require("express");
 const multer = require("multer");
 const { exec } = require("child_process");
@@ -147,6 +148,42 @@ app.post("/upload-jpg", upload.single("file"), async (req, res) => {
   }
 });
 
+app.post("/upload-mp4", upload.single("file"), async (req, res) => {
+  const inputPath = path.resolve(__dirname, "uploads", req.file.filename);
+  const outputPath = path.join(__dirname, "converted");
+
+  if (!fs.existsSync(outputPath)) {
+    fs.mkdirSync(outputPath);
+  }
+
+  const outputFile = path.join(
+    outputPath,
+    req.file.filename.replace(/\.mp4$/, ".mp3")
+  );
+
+  if (!fs.existsSync(inputPath)) {
+    fs.mkdirSync(inputPath);
+  }
+
+  ffmpeg(inputPath)
+    .audioCodec("libmp3lame")
+    .format("mp3")
+    .on("start", (cmdLine) => {
+      console.log("[FFmpeg iniciado] Comando:", cmdLine);
+    })
+    .on("end", () => {
+      res.download(outputFile, (err) => {
+        fs.unlink(inputPath);
+        fs.unlink(outputFile);
+      });
+    })
+    .on("error", (err) => {
+      console.error("Erro ao converter MP4 para MP3:", err.message || err);
+      res.status(500).send("Erro ao converter codex de audio");
+    })
+    .save(outputFile);
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "./views/index.html"));
 });
@@ -161,6 +198,10 @@ app.get("/pdf-to-docx", (req, res) => {
 
 app.get("/jpg-to-png", (req, res) => {
   res.sendFile(path.join(__dirname, "./views/jpg-to-png.html"));
+});
+
+app.get("/mp4-to-mp3", (req, res) => {
+  res.sendFile(path.join(__dirname, "./views/mp4-to-mp3.html"));
 });
 
 app.listen(port, () => {
